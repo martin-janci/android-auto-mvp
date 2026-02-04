@@ -1,7 +1,9 @@
 package com.example.calltasks.mobile.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.calltasks.data.csv.CsvImporter
 import com.example.calltasks.data.repository.TaskRepository
 import com.example.calltasks.domain.model.MainUiState
 import com.example.calltasks.domain.model.Task
@@ -17,7 +19,8 @@ import kotlinx.coroutines.launch
  * Manages task list state and user interactions.
  */
 class MainViewModel(
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val csvImporter: CsvImporter
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MainUiState>(MainUiState.Loading)
@@ -46,6 +49,40 @@ class MainViewModel(
                 .collect { tasks ->
                     _uiState.value = MainUiState.Success(tasks)
                 }
+        }
+    }
+
+    /**
+     * Import tasks from a CSV file URI.
+     */
+    fun importCsv(uri: Uri) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                when (val result = csvImporter.importFromUri(uri)) {
+                    is CsvImporter.ImportResult.Success -> {
+                        if (result.tasks.isNotEmpty()) {
+                            taskRepository.insertTasks(result.tasks)
+                            val message = buildString {
+                                append("Imported ${result.tasks.size} tasks")
+                                if (result.skippedRows > 0) {
+                                    append(" (${result.skippedRows} rows skipped)")
+                                }
+                            }
+                            _message.value = message
+                        } else {
+                            _message.value = "No valid tasks found in file"
+                        }
+                    }
+                    is CsvImporter.ImportResult.Error -> {
+                        _message.value = result.message
+                    }
+                }
+            } catch (e: Exception) {
+                _message.value = "Import failed: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
