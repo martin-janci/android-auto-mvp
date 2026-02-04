@@ -6,18 +6,18 @@ import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
-import androidx.core.graphics.drawable.IconCompat
-import com.example.calltasks.R
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.example.calltasks.data.local.TaskEntity
 import com.example.calltasks.data.repository.TaskRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -33,6 +33,14 @@ class TaskDetailScreen(
 
     private val taskRepository: TaskRepository by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    init {
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onDestroy(owner: LifecycleOwner) {
+                scope.cancel()
+            }
+        })
+    }
 
     override fun onGetTemplate(): Template {
         val paneBuilder = Pane.Builder()

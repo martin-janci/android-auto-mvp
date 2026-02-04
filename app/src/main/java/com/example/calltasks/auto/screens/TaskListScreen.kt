@@ -3,16 +3,12 @@ package com.example.calltasks.auto.screens
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.CarColor
-import androidx.car.app.model.CarIcon
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
-import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import com.example.calltasks.R
 import com.example.calltasks.data.local.TaskEntity
 import com.example.calltasks.data.repository.TaskRepository
 import kotlinx.coroutines.CoroutineScope
@@ -98,7 +94,9 @@ class TaskListScreen(carContext: CarContext) : Screen(carContext), KoinComponent
     }
 
     private fun buildTaskTitle(task: TaskEntity): String {
+        // Priority 0 means unprioritized - don't show indicator
         val priorityPrefix = when {
+            task.priority == 0 -> ""
             task.priority <= 2 -> "[HIGH] "
             task.priority <= 4 -> "[MED] "
             else -> ""
