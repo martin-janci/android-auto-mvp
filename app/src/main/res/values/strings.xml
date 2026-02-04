@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Call Tasks</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">Call Tasks</string>
+    <string name="task_list_empty">No tasks available</string>
+    <string name="task_priority_high">High Priority</string>
+    <string name="task_priority_medium">Medium Priority</string>
+    <string name="task_priority_low">Low Priority</string>
+
+    <!-- Task Detail -->
+    <string name="task_detail_title">Task Details</string>
+    <string name="task_detail_phone">Phone: %1$s</string>
+    <string name="task_detail_description">Description</string>
+    <string name="task_detail_notes">Notes</string>
+
+    <!-- Actions -->
+    <string name="action_call">Call</string>
+    <string name="action_done">Done</string>
+    <string name="action_back">Back</string>
+    <string name="action_import">Import CSV</string>
+    <string name="action_prioritize">Prioritize</string>
+
+    <!-- Messages -->
+    <string name="msg_import_success">Successfully imported %1$d tasks</string>
+    <string name="msg_import_error">Failed to import tasks</string>
+    <string name="msg_prioritize_success">Tasks prioritized successfully</string>
+    <string name="msg_prioritize_fallback">Using default sorting (API unavailable)</string>
+    <string name="msg_task_completed">Task marked as complete</string>
+    <string name="msg_invalid_phone">Invalid phone number</string>
+
+    <!-- Loading -->
+    <string name="loading">Loading…</string>
+    <string name="loading_prioritizing">Prioritizing tasks…</string>
+</resources>
