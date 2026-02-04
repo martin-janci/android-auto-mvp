@@ -1,5 +1,7 @@
 package com.example.calltasks.di
 
+import com.example.calltasks.ai.OpenAiClient
+import com.example.calltasks.ai.TaskPrioritizer
 import com.example.calltasks.data.csv.CsvImporter
 import com.example.calltasks.data.local.AppDatabase
 import com.example.calltasks.data.repository.TaskRepository
@@ -22,23 +24,24 @@ val databaseModule = module {
  * Provides TaskRepository and CsvImporter as singletons.
  */
 val repositoryModule = module {
-    single { TaskRepository(get()) }
+    single { TaskRepository(get(), get()) }
     single { CsvImporter(androidContext()) }
 }
 
 /**
  * Koin module providing AI-related dependencies.
- * Will be expanded in Epic 3 with OpenAI client and TaskPrioritizer.
+ * Provides OpenAI client and TaskPrioritizer.
  */
 val aiModule = module {
-    // OpenAI client and TaskPrioritizer will be added in Epic 3
+    single { OpenAiClient() }
+    single { TaskPrioritizer(get(), get()) }
 }
 
 /**
  * Koin module providing ViewModel dependencies.
  */
 val viewModelModule = module {
-    viewModel { MainViewModel(get(), get()) }
+    viewModel { MainViewModel(get(), get(), get()) }
 }
 
 /**

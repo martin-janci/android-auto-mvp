@@ -29,6 +29,12 @@ class CsvImporter(private val context: Context) {
         private const val COLUMN_PHONE = "phone"
         private const val COLUMN_DESCRIPTION = "description"
         private const val COLUMN_NOTES = "notes"
+
+        // Field length limits to prevent memory/storage issues from malformed files
+        private const val MAX_NAME_LENGTH = 255
+        private const val MAX_PHONE_LENGTH = 50
+        private const val MAX_DESCRIPTION_LENGTH = 1000
+        private const val MAX_NOTES_LENGTH = 2000
     }
 
     /**
@@ -141,14 +147,17 @@ class CsvImporter(private val context: Context) {
     /**
      * Parse a single CSV row into a TaskEntity.
      * Returns null if the row is malformed or missing required fields.
+     * Applies field length limits and truncates if exceeded.
      */
     private fun parseRow(row: List<String>, indices: ColumnIndices): TaskEntity? {
         if (row.size < 3) return null
 
-        val name = row.getOrNull(indices.name)?.trim()
-        val phone = row.getOrNull(indices.phone)?.trim()
-        val description = row.getOrNull(indices.description)?.trim()
-        val notes = if (indices.notes >= 0) row.getOrNull(indices.notes)?.trim() else null
+        val name = row.getOrNull(indices.name)?.trim()?.truncateWithWarning("name", MAX_NAME_LENGTH)
+        val phone = row.getOrNull(indices.phone)?.trim()?.truncateWithWarning("phone", MAX_PHONE_LENGTH)
+        val description = row.getOrNull(indices.description)?.trim()?.truncateWithWarning("description", MAX_DESCRIPTION_LENGTH)
+        val notes = if (indices.notes >= 0) {
+            row.getOrNull(indices.notes)?.trim()?.truncateWithWarning("notes", MAX_NOTES_LENGTH)
+        } else null
 
         // Name and phone are required
         if (name.isNullOrBlank() || phone.isNullOrBlank()) {
@@ -166,6 +175,18 @@ class CsvImporter(private val context: Context) {
             priority = 0, // Will be set by prioritizer
             isCompleted = false
         )
+    }
+
+    /**
+     * Truncate a string if it exceeds the max length, logging a warning.
+     */
+    private fun String.truncateWithWarning(fieldName: String, maxLength: Int): String {
+        return if (length > maxLength) {
+            Log.w(TAG, "Field '$fieldName' truncated from $length to $maxLength chars")
+            take(maxLength)
+        } else {
+            this
+        }
     }
 
     /**

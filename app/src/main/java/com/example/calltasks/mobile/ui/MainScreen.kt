@@ -3,6 +3,7 @@ package com.example.calltasks.mobile.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +13,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,7 +50,7 @@ import com.example.calltasks.mobile.viewmodel.MainViewModel
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Main screen composable showing the task list with import functionality.
+ * Main screen composable showing the task list with import and prioritization.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +60,7 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isPrioritizing by viewModel.isPrioritizing.collectAsState()
     val message by viewModel.message.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -79,6 +84,7 @@ fun MainScreen(
             TopAppBar(
                 title = { Text("Call Tasks") },
                 actions = {
+                    // Delete all button
                     IconButton(onClick = { viewModel.deleteAllTasks() }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -116,12 +122,21 @@ fun MainScreen(
                             modifier = Modifier.align(Alignment.Center)
                         )
                     } else {
-                        TaskList(
-                            tasks = state.tasks,
-                            onTaskClick = { task ->
-                                viewModel.markTaskComplete(task.id)
-                            }
-                        )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Prioritize button bar when tasks exist
+                            PrioritizeBar(
+                                taskCount = state.tasks.count { !it.isCompleted },
+                                isPrioritizing = isPrioritizing,
+                                onPrioritize = { viewModel.prioritizeTasks() }
+                            )
+                            TaskList(
+                                tasks = state.tasks,
+                                onTaskClick = { task ->
+                                    viewModel.markTaskComplete(task.id)
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
                 is MainUiState.Error -> {
@@ -133,14 +148,56 @@ fun MainScreen(
             }
 
             // Loading overlay
-            if (isLoading) {
+            if (isLoading || isPrioritizing) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (isPrioritizing) "Prioritizing..." else "Loading...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PrioritizeBar(
+    taskCount: Int,
+    isPrioritizing: Boolean,
+    onPrioritize: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "$taskCount pending tasks",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Button(
+            onClick = onPrioritize,
+            enabled = !isPrioritizing && taskCount > 0
+        ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Prioritize")
         }
     }
 }
@@ -156,7 +213,7 @@ private fun TaskList(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
     ) {
         items(tasks, key = { it.id }) { task ->
             TaskCard(
@@ -193,12 +250,25 @@ private fun TaskCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = task.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    // Priority number badge
+                    if (task.priority > 0) {
+                        Text(
+                            text = "#${task.priority}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    Text(
+                        text = task.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                    )
+                }
                 PriorityIndicator(priority = task.priority)
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -234,6 +304,9 @@ private fun PriorityIndicator(
     priority: Int,
     modifier: Modifier = Modifier
 ) {
+    // Priority 0 means unprioritized - don't show indicator
+    if (priority == 0) return
+
     val (text, color) = when {
         priority <= 2 -> "HIGH" to MaterialTheme.colorScheme.error
         priority <= 4 -> "MED" to MaterialTheme.colorScheme.tertiary
