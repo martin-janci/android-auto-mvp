@@ -1,5 +1,8 @@
 package com.example.calltasks.mobile.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -37,8 +46,7 @@ import com.example.calltasks.mobile.viewmodel.MainViewModel
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Main screen composable showing the task list.
- * This is a placeholder UI that will be expanded in Epic 2.
+ * Main screen composable showing the task list with import functionality.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,8 +55,16 @@ fun MainScreen(
     viewModel: MainViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val message by viewModel.message.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // File picker launcher for CSV import
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.importCsv(it) }
+    }
 
     LaunchedEffect(message) {
         message?.let {
@@ -61,7 +77,24 @@ fun MainScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Call Tasks") }
+                title = { Text("Call Tasks") },
+                actions = {
+                    IconButton(onClick = { viewModel.deleteAllTasks() }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete all tasks"
+                        )
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    filePickerLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*"))
+                },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Import CSV") }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -85,7 +118,9 @@ fun MainScreen(
                     } else {
                         TaskList(
                             tasks = state.tasks,
-                            onTaskClick = { /* Will be implemented in Epic 2 */ }
+                            onTaskClick = { task ->
+                                viewModel.markTaskComplete(task.id)
+                            }
                         )
                     }
                 }
@@ -94,6 +129,16 @@ fun MainScreen(
                         message = state.message,
                         modifier = Modifier.align(Alignment.Center)
                     )
+                }
+            }
+
+            // Loading overlay
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -109,8 +154,9 @@ private fun TaskList(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
     ) {
         items(tasks, key = { it.id }) { task ->
             TaskCard(
@@ -136,7 +182,8 @@ private fun TaskCard(
             } else {
                 MaterialTheme.colorScheme.surface
             }
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -168,6 +215,16 @@ private fun TaskCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
+            task.notes?.let { notes ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -204,7 +261,7 @@ private fun EmptyTasksMessage(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Import a CSV file to get started",
+            text = "Tap the button below to import a CSV file",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

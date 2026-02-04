@@ -1,5 +1,6 @@
 package com.example.calltasks.di
 
+import com.example.calltasks.data.csv.CsvImporter
 import com.example.calltasks.data.local.AppDatabase
 import com.example.calltasks.data.repository.TaskRepository
 import com.example.calltasks.mobile.viewmodel.MainViewModel
@@ -18,10 +19,11 @@ val databaseModule = module {
 
 /**
  * Koin module providing repository dependencies.
- * Provides TaskRepository as singleton.
+ * Provides TaskRepository and CsvImporter as singletons.
  */
 val repositoryModule = module {
     single { TaskRepository(get()) }
+    single { CsvImporter(androidContext()) }
 }
 
 /**
@@ -36,7 +38,7 @@ val aiModule = module {
  * Koin module providing ViewModel dependencies.
  */
 val viewModelModule = module {
-    viewModel { MainViewModel(get()) }
+    viewModel { MainViewModel(get(), get()) }
 }
 
 /**
