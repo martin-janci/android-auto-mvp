@@ -50,6 +50,7 @@ captures/
 *.hprof
 
 # Kotlin
+.kotlin/
 *.class
 *.jar
 *.war
