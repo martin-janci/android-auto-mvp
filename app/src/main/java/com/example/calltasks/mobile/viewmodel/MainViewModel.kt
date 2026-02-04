@@ -3,6 +3,7 @@ package com.example.calltasks.mobile.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.calltasks.ai.TaskPrioritizer
 import com.example.calltasks.data.csv.CsvImporter
 import com.example.calltasks.data.repository.TaskRepository
 import com.example.calltasks.domain.model.MainUiState
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
  */
 class MainViewModel(
     private val taskRepository: TaskRepository,
-    private val csvImporter: CsvImporter
+    private val csvImporter: CsvImporter,
+    private val taskPrioritizer: TaskPrioritizer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MainUiState>(MainUiState.Loading)
@@ -28,6 +30,9 @@ class MainViewModel(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _isPrioritizing = MutableStateFlow(false)
+    val isPrioritizing: StateFlow<Boolean> = _isPrioritizing.asStateFlow()
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -82,6 +87,33 @@ class MainViewModel(
                 _message.value = "Import failed: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Prioritize tasks using AI or fallback sorting.
+     */
+    fun prioritizeTasks() {
+        viewModelScope.launch {
+            _isPrioritizing.value = true
+            try {
+                when (val result = taskPrioritizer.prioritizeTasks()) {
+                    is TaskPrioritizer.PrioritizeResult.Success -> {
+                        _message.value = if (result.usedAi) {
+                            "Tasks prioritized with AI"
+                        } else {
+                            "Tasks sorted alphabetically (AI unavailable)"
+                        }
+                    }
+                    is TaskPrioritizer.PrioritizeResult.Error -> {
+                        _message.value = "Prioritization failed: ${result.message}"
+                    }
+                }
+            } catch (e: Exception) {
+                _message.value = "Prioritization failed: ${e.message}"
+            } finally {
+                _isPrioritizing.value = false
             }
         }
     }
