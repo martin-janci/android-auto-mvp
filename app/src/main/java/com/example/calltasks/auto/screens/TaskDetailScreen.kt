@@ -1,17 +1,17 @@
 package com.example.calltasks.auto.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.CarColor
 import androidx.car.app.model.Pane
 import androidx.car.app.model.PaneTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.example.calltasks.auto.PhoneDialerHelper
 import com.example.calltasks.data.local.TaskEntity
 import com.example.calltasks.data.repository.TaskRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +25,16 @@ import org.koin.core.component.inject
 /**
  * Android Auto screen showing task details with call and complete actions.
  * Uses PaneTemplate with max 4 actions per Android Auto guidelines.
+ *
+ * Displays:
+ * - Task name prominently
+ * - Phone number
+ * - Task description
+ * - Notes (if available)
+ *
+ * Actions:
+ * - CALL: Opens phone dialer with pre-filled number
+ * - DONE: Marks task complete and returns to list
  */
 class TaskDetailScreen(
     carContext: CarContext,
@@ -45,22 +55,39 @@ class TaskDetailScreen(
     override fun onGetTemplate(): Template {
         val paneBuilder = Pane.Builder()
 
-        // Add task information rows
+        // Row 1: Contact name and phone
         paneBuilder.addRow(
             Row.Builder()
                 .setTitle(task.name)
-                .addText("Phone: ${task.phone}")
+                .addText(formatPhoneDisplay(task.phone))
                 .build()
         )
 
+        // Row 2: Task description
         paneBuilder.addRow(
             Row.Builder()
-                .setTitle("Description")
+                .setTitle("Task")
                 .addText(task.description)
                 .build()
         )
 
-        task.notes?.let { notes ->
+        // Row 3: Priority indicator (only show if prioritized)
+        if (task.priority > 0) {
+            val priorityText = when {
+                task.priority <= 2 -> "High Priority"
+                task.priority <= 4 -> "Medium Priority"
+                else -> "Low Priority"
+            }
+            paneBuilder.addRow(
+                Row.Builder()
+                    .setTitle("Priority")
+                    .addText(priorityText)
+                    .build()
+            )
+        }
+
+        // Row 4: Notes (if available)
+        task.notes?.takeIf { it.isNotBlank() }?.let { notes ->
             paneBuilder.addRow(
                 Row.Builder()
                     .setTitle("Notes")
@@ -69,9 +96,24 @@ class TaskDetailScreen(
             )
         }
 
-        // Add action buttons (max 4)
-        paneBuilder.addAction(createCallAction())
-        paneBuilder.addAction(createDoneAction())
+        // Add action buttons (max 4 per Android Auto)
+        // Action 1: Call button
+        paneBuilder.addAction(
+            Action.Builder()
+                .setTitle("Call")
+                .setBackgroundColor(CarColor.BLUE)
+                .setOnClickListener { handleCallAction() }
+                .build()
+        )
+
+        // Action 2: Done button
+        paneBuilder.addAction(
+            Action.Builder()
+                .setTitle("Done")
+                .setBackgroundColor(CarColor.GREEN)
+                .setOnClickListener { handleDoneAction() }
+                .build()
+        )
 
         return PaneTemplate.Builder(paneBuilder.build())
             .setTitle(task.name)
@@ -79,48 +121,57 @@ class TaskDetailScreen(
             .build()
     }
 
-    private fun createCallAction(): Action {
-        return Action.Builder()
-            .setTitle("Call")
-            .setOnClickListener { initiateCall() }
-            .build()
+    /**
+     * Format phone number for display.
+     */
+    private fun formatPhoneDisplay(phone: String): String {
+        return "Phone: $phone"
     }
 
-    private fun createDoneAction(): Action {
-        return Action.Builder()
-            .setTitle("Done")
-            .setOnClickListener { markComplete() }
-            .build()
-    }
-
-    private fun initiateCall() {
-        val phoneNumber = task.phone.trim()
-        if (phoneNumber.isBlank()) {
-            CarToast.makeText(carContext, "Invalid phone number", CarToast.LENGTH_SHORT).show()
-            return
-        }
-
-        try {
-            // Use ACTION_DIAL - no permission required
-            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                data = Uri.parse("tel:$phoneNumber")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    /**
+     * Handle the CALL button action.
+     * Opens phone dialer with the task's phone number.
+     */
+    private fun handleCallAction() {
+        when (val result = PhoneDialerHelper.dial(carContext, task.phone)) {
+            is PhoneDialerHelper.DialResult.Success -> {
+                // Dialer opened successfully
+                // The user will return to Auto after the call
             }
-            carContext.startCarApp(dialIntent)
-        } catch (e: Exception) {
-            CarToast.makeText(carContext, "Could not open dialer", CarToast.LENGTH_SHORT).show()
+            is PhoneDialerHelper.DialResult.Error -> {
+                CarToast.makeText(
+                    carContext,
+                    result.message,
+                    CarToast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
-    private fun markComplete() {
+    /**
+     * Handle the DONE button action.
+     * Marks the task as completed and returns to the list.
+     */
+    private fun handleDoneAction() {
         scope.launch {
             try {
                 taskRepository.markComplete(task.id)
-                CarToast.makeText(carContext, "Task completed", CarToast.LENGTH_SHORT).show()
+
+                CarToast.makeText(
+                    carContext,
+                    "Task completed",
+                    CarToast.LENGTH_SHORT
+                ).show()
+
                 // Pop back to the list screen
+                // The list will refresh and no longer show this task
                 screenManager.pop()
             } catch (e: Exception) {
-                CarToast.makeText(carContext, "Failed to complete task", CarToast.LENGTH_SHORT).show()
+                CarToast.makeText(
+                    carContext,
+                    "Failed to complete task",
+                    CarToast.LENGTH_SHORT
+                ).show()
             }
         }
     }
