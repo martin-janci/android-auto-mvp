@@ -39,7 +39,7 @@ object PhoneDialerHelper {
         }
 
         if (!isValidPhoneNumber(cleanNumber)) {
-            Log.w(TAG, "Invalid phone number format: $phoneNumber")
+            Log.w(TAG, "Invalid phone number format")
             return DialResult.Error("Invalid phone number format")
         }
 
@@ -50,7 +50,7 @@ object PhoneDialerHelper {
             }
 
             carContext.startCarApp(dialIntent)
-            Log.i(TAG, "Opened dialer for: $cleanNumber")
+            Log.i(TAG, "Opened dialer successfully")
             DialResult.Success
         } catch (e: Exception) {
             Log.e(TAG, "Failed to open dialer", e)

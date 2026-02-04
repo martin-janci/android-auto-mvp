@@ -42,18 +42,23 @@ class TaskListScreen(carContext: CarContext) : Screen(carContext), KoinComponent
     private val taskRepository: TaskRepository by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var tasks: List<TaskEntity> = emptyList()
+    private var hasLoadedOnce = false
 
     init {
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
                 Log.d(TAG, "Screen created")
-                loadTasks()
             }
 
             override fun onResume(owner: LifecycleOwner) {
-                Log.d(TAG, "Screen resumed - refreshing tasks")
-                // Refresh tasks when returning from detail screen
+                // Load tasks on resume (handles both initial load and refresh after returning)
+                if (hasLoadedOnce) {
+                    Log.d(TAG, "Screen resumed - refreshing tasks")
+                } else {
+                    Log.d(TAG, "Screen initial load")
+                }
                 loadTasks()
+                hasLoadedOnce = true
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
