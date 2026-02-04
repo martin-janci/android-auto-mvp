@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start-tts.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "k8s-toolkit@hanibalsk-marketplace": true,
+    "worktree@hanibalsk-marketplace": true,
+    "code-review@claude-code-plugins": true,
+    "dev-setup@papayapos-marketplace": true,
+    "jira@papayapos-marketplace": true,
+    "bmad-system@hanibalsk-marketplace": true,
+    "claude-auto-agents@hanibalsk-marketplace": true,
+    "dev-agents@hanibalsk-marketplace": true,
+    "story-agents@hanibalsk-marketplace": true,
+    "nuxt-setup@hanibalsk-marketplace": true,
+    "pr-toolkit@hanibalsk-marketplace": true
+  },
+  "$schema": "https://json.schemastore.org/claude-code-settings.json"
+}

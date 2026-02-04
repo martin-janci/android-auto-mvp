@@ -1,0 +1,60 @@
+# IDE and editor
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code - TTS audio files (generated)
+.claude/audio/*.wav
+.claude/audio/tracks/
+
+# Claude Code - Local files (not to be tracked)
+.claude/github-star-reminder.txt
+.claude/tts-provider.txt
+.claude/tts-verbosity.txt
+.claude/tts-voice.txt
+.claude/plugins/
+
+# MCP configuration (local)
+.mcp.json
+
+# BMAD output (generated)
+_bmad-output/
+
+# Work queue (local session state)
+work/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android
+*.iml
+.gradle/
+local.properties
+.idea/
+*.jks
+*.keystore
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# Kotlin
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
