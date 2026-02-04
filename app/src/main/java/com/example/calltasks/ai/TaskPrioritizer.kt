@@ -81,18 +81,20 @@ class TaskPrioritizer(
     private suspend fun tryAiPrioritization(tasks: List<TaskEntity>): PrioritizeResult? {
         val userMessage = buildTaskListMessage(tasks)
 
-        return when (val result = openAiClient.chat(SYSTEM_PROMPT, userMessage)) {
-            is Result -> {
-                result.getOrNull()?.let { response ->
-                    val success = parseAndApplyPriorities(response, tasks)
-                    if (success) {
-                        PrioritizeResult.Success(usedAi = true)
-                    } else {
-                        null // Parsing failed, will retry or fallback
-                    }
+        return openAiClient.chat(SYSTEM_PROMPT, userMessage).fold(
+            onSuccess = { response ->
+                val success = parseAndApplyPriorities(response, tasks)
+                if (success) {
+                    PrioritizeResult.Success(usedAi = true)
+                } else {
+                    null // Parsing failed, will retry or fallback
                 }
+            },
+            onFailure = { error ->
+                Log.w(TAG, "AI call failed: ${error.message}")
+                null // Will trigger retry or fallback
             }
-        }
+        )
     }
 
     private fun buildTaskListMessage(tasks: List<TaskEntity>): String {

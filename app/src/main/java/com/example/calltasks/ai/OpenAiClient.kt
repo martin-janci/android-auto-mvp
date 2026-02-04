@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Client for interacting with OpenAI API.
- * Configured with 10 second timeout and uses gpt-3.5-turbo model.
+ * Configured with 30 second timeout and uses gpt-3.5-turbo model.
  */
 class OpenAiClient {
 
@@ -21,7 +21,7 @@ class OpenAiClient {
 
     companion object {
         private const val MODEL = "gpt-3.5-turbo"
-        private val TIMEOUT = 10.seconds
+        private val TIMEOUT = 30.seconds
     }
 
     private fun createClient(): OpenAI? {

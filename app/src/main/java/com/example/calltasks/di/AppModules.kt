@@ -24,7 +24,7 @@ val databaseModule = module {
  * Provides TaskRepository and CsvImporter as singletons.
  */
 val repositoryModule = module {
-    single { TaskRepository(get()) }
+    single { TaskRepository(get(), get()) }
     single { CsvImporter(androidContext()) }
 }
 

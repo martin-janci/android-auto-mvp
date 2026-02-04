@@ -1,5 +1,7 @@
 package com.example.calltasks.data.repository
 
+import androidx.room.withTransaction
+import com.example.calltasks.data.local.AppDatabase
 import com.example.calltasks.data.local.TaskDao
 import com.example.calltasks.data.local.TaskEntity
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +12,10 @@ import kotlinx.coroutines.withContext
  * Repository for managing task data.
  * Provides a clean API for the data layer and handles threading.
  */
-class TaskRepository(private val taskDao: TaskDao) {
+class TaskRepository(
+    private val taskDao: TaskDao,
+    private val database: AppDatabase
+) {
 
     /**
      * Get all tasks as a reactive Flow.
@@ -85,12 +90,14 @@ class TaskRepository(private val taskDao: TaskDao) {
     }
 
     /**
-     * Update priorities for multiple tasks.
+     * Update priorities for multiple tasks in a single transaction.
      * @param priorityMap Map of task ID to new priority value.
      */
     suspend fun updatePriorities(priorityMap: Map<Long, Int>) = withContext(Dispatchers.IO) {
-        priorityMap.forEach { (id, priority) ->
-            taskDao.updatePriority(id, priority)
+        database.withTransaction {
+            priorityMap.forEach { (id, priority) ->
+                taskDao.updatePriority(id, priority)
+            }
         }
     }
 

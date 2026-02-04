@@ -84,16 +84,6 @@ fun MainScreen(
             TopAppBar(
                 title = { Text("Call Tasks") },
                 actions = {
-                    // Prioritize button
-                    IconButton(
-                        onClick = { viewModel.prioritizeTasks() },
-                        enabled = !isPrioritizing
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Prioritize tasks"
-                        )
-                    }
                     // Delete all button
                     IconButton(onClick = { viewModel.deleteAllTasks() }) {
                         Icon(
@@ -314,6 +304,9 @@ private fun PriorityIndicator(
     priority: Int,
     modifier: Modifier = Modifier
 ) {
+    // Priority 0 means unprioritized - don't show indicator
+    if (priority == 0) return
+
     val (text, color) = when {
         priority <= 2 -> "HIGH" to MaterialTheme.colorScheme.error
         priority <= 4 -> "MED" to MaterialTheme.colorScheme.tertiary
